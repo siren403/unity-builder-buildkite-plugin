@@ -1,0 +1,541 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+# default_platform(:ios)
+
+require 'os'
+require 'fastlane_core/ui/ui'
+
+fastlane_require 'dotenv'
+
+UI = FastlaneCore::UI unless Fastlane.const_defined?("UI")
+
+before_all do |lane|
+  Dotenv.overload "../.env.#{lane_context[SharedValues::PLATFORM_NAME]}"
+end
+
+platform :android do
+
+#     before_all do |lane|
+#         Dotenv.overload '../../.env'
+#         environment = lane_context[SharedValues::ENVIRONMENT]
+#         unless environment.nil?
+#             puts "Load .env file of #{environment}"
+#             Dotenv.overload '../../.env.' + environment
+#         end
+#     end
+
+    lane :deploy_app_center do |options|
+        work = nil
+        if options[:work] != nil
+            work = options[:work]
+        elsif ENV["work"] != nil
+            work = ENV["work"]
+        end
+        apk_path = build(work: work)
+        upload_app_center(path: apk_path)
+    end
+
+    private_lane :build do |options|
+        ARGS = ""
+
+        if options[:work] != nil
+            ARGS = "#{ARGS} -work #{options[:work]}"
+        end
+        
+        unity(
+            build_target: "Android",
+            extra_args: ARGS
+        )
+
+        "#{ENV["FL_UNITY_PROJECT_PATH"]}/Build/android/#{ENV["PRODUCT_NAME"]}.apk"
+    end
+
+    lane :upload_app_center do |options|
+        appcenter_upload(
+            #api_token: ENV["APPCENTER_ANDROID_API_TOKEN"], # ENV
+            file: options[:path],
+            notify_testers: true,
+            #app_os: "Android", # ENV
+            upload_build_only: true,
+            #app_name: ENV["APPCENTER_ANDROID_APP_NAME"], # ENV
+            release_notes: "upload #{Date.today.strftime("%Y%m%d")}"
+        )
+    end
+
+    ################
+    # lane :aab_to_appcenter do |options|
+    #     # bundletool(
+    #     #   ks_path: options[:keystore_path],
+    #     #   ks_password: options[:keystore_password],
+    #     #   ks_key_alias: options[:keystore_alias],
+    #     #   ks_key_alias_password: options[:keystore_alias_password],
+    #     #   bundletool_version: '1.10.0',
+    #     #   aab_path: options[:aab_path],
+    #     #   apk_output_path: options[:apk_output_path],
+    #     #   verbose: true
+    #     # )
+    #     bundletool(
+    #         ks_path: "D:/workspace/unity/AppBuilder/secrets/deploy.keystore",
+    #         ks_password: "000000",
+    #         ks_key_alias: "deploy",
+    #         ks_key_alias_password: "000000",
+    #         bundletool_version: '1.10.0',
+    #         aab_path: "D:/workspace/unity/AppBuilder/Build/Android/AppBuilder.aab",
+    #         apk_output_path: "D:/workspace/unity/AppBuilder/Build/Android/AppBuilder.apk",
+    #         verbose: true
+    #     )
+    # end
+    #
+    # lane :appcenter do |options|
+    #     unless options[:path]
+    #         raise 'require path'
+    #     end
+    #     appcenter_upload(
+    #         api_token: ENV["APPCENTER_ANDROID_API_TOKEN"],
+    #         file: options[:path],
+    #         notify_testers: true,
+    #         app_os: "Android",
+    #         upload_build_only: true,
+    #         app_name: "AppBuilder-Android",
+    #         release_notes: "upload #{Date.today.strftime("%Y%m%d")}"
+    #     )
+    # end
+ 
+    # lane :upload_internal do
+    #
+    #     UNITY_VERSION = "2021.2.12f1";
+    #     UNITY_PATH = get_unity_path(UNITY_VERSION)
+    #
+    #     PROJECT_DIR = File.expand_path('../', Dir.pwd)
+    #     METHOD = 'Samples.Deploy.UseCase.Build.Android'
+    #     LOGFILE = "#{PROJECT_DIR}/Editor.log"
+    #     #
+    #     ARGS = "#{LOGFILE} -appsettings \"Assets/Samples/Deploy/UseCase\""
+    #
+    #     unity(
+    #         unity_path: UNITY_PATH,
+    #         # unity_version: UNITY_VERSION,
+    #         project_path: PROJECT_DIR,
+    #         build_target: "Android",
+    #         execute_method: METHOD,
+    #         extra_args: ARGS
+    #     )
+    #
+    #     upload_to_play_store(
+    #         track: "internal",
+    #         aab: File.expand_path("../Build/Android/AppBuilder.aab", Dir.pwd),
+    #         release_status: "draft"
+    #     )
+    # end
+end
+
+platform :ios do
+
+    before_all do |lane|
+        puts "ios lane: #{lane}"
+    end
+  
+    lane :deploy_testflight do |options|
+        
+        paths = get_paths options
+        puts paths
+        root, proj, dest = paths
+        
+        version_number = ENV["XCODE_PROJECT_VERSION"]
+        unless version_number.nil? || version_number.strip.empty?
+            increment_version_number(
+                version_number: version_number,
+                xcodeproj: proj
+            )
+        end
+        build_number = latest_testflight_build_number(initial_build_number: 0) + 1
+        increment_build_number(
+            build_number: build_number,
+            xcodeproj: proj
+        )
+        
+        build_configuration = "Release"
+        
+        profiles = match(type: "appstore", readonly: true)
+        update_signing(profiles: profiles, path: proj, code_sign_identity: "Apple Distribution", build_configurations: [build_configuration])
+        
+        ipa_path, dsym_path = export_ipa(project_path: dest, output_dir: "Build/AppStore", export_method: "app-store", configuration: build_configuration)
+      
+        build_only = options[:build_only].nil? ? false : options[:build_only] 
+        if !build_only
+            upload_pilot(ipa_path: ipa_path, build_number: "#{build_number}")
+        end
+        
+        fields = []
+        fields << { name: "app", value: ENV["APP_IDENTIFIER"] }
+        fields << { name: "version", value: version_number }
+        fields << { name: "build", value: build_number }
+        fields << { name: "build configuration", value: build_configuration }
+        
+        if build_only
+            fields << {
+                name: "build_only", value: build_only
+            }
+        end
+        
+        begin
+            discord_notifier(
+                title: "fastlane completed",
+                description: "deploy testflight",
+                fields: fields
+            )
+        rescue => ex
+            UI.message("discord noti failed")
+            UI.message(ex)
+        end
+    end
+  
+    lane :deploy_device do |options|
+        paths = get_paths options
+        puts paths
+        root, proj, dest = paths
+        
+        version = get_version_number(xcodeproj: proj, target: "Unity-iPhone")
+        build_number = get_build_number(xcodeproj: proj)
+	    
+        product_name = ENV["PRODUCT_NAME"].nil? ? 
+            get_info_plist_value(path: "#{root}/Info.plist", key: "CFBundleDisplayName") :
+            ENV["PRODUCT_NAME"]
+        
+        verbose_product_name = "#{version}(#{build_number}) #{product_name}"
+        puts "change product name: #{verbose_product_name}"
+        update_info_plist(
+            xcodeproj: proj,
+            plist_path: "./Info.plist",
+            # TODO: product name from xcode
+            display_name: verbose_product_name
+        )
+        
+        signing_xcode_development(xcode_proj: proj)
+        ipa_path, dsym_path = export_ipa(project_path: dest, output_dir: "Build/iOS", export_method: "development", configuration: "ReleaseForRunning")
+        
+        puts "restore product name: #{product_name}"
+        update_info_plist(
+            xcodeproj: proj,
+            plist_path: "./Info.plist",
+            # TODO: product name from xcode
+            display_name: product_name
+        )
+        
+        try_install_device(
+            ipa: ipa_path,
+            uninstall: ENV["APP_IDENTIFIER"]
+        )
+	end
+  
+    lane :deploy_app_center do |options|
+        
+        paths = get_paths options
+        puts paths
+        root, proj, dest = paths
+        
+        profiles = match(type: "development", readonly: true, force_for_new_devices: true)
+        update_signing(
+          profiles: profiles, 
+          path: proj, 
+          code_sign_identity: "Apple Development", 
+          build_configurations: ["ReleaseForRunning"]
+        )
+        
+        ipa_path, dsym_path = export_ipa(project_path: dest, output_dir: "Build/iOS", export_method: "development", configuration: "ReleaseForRunning")
+
+        upload_app_center(path: ipa_path)
+    end
+  
+    lane :try_install_device do |options|
+
+        skip_wifi = options[:skip_wifi].nil? ? false : options[:skip_wifi]
+        uninstall = options[:uninstall].nil? ? nil : options[:uninstall]
+        timeout = options[:timeout].nil? ? 30 : options[:timeout]
+        device_id = options[:device_id]
+        ipa = options[:ipa]
+
+        if ipa.nil?
+            UI.user_error!("require ipa")
+        end
+
+        begin
+            args = "-v -n -t #{timeout}"
+            
+            if !uninstall.nil?
+                args = "#{args} -r --bundle_id #{uninstall}"
+            end
+            install_on_device(
+                device_id: device_id,
+                ipa: ipa,
+                extra: args,
+                skip_wifi: skip_wifi
+            )
+        rescue => ex
+            if !skip_wifi && ex.message.match(/This device is no longer connected/i)
+                UI.message("wifi - not connected device")
+                UI.message("try not wifi device")
+                try_install_device(
+                    device_id: device_id,
+                    ipa: ipa,
+                    skip_wifi: true,
+                    uninstall: uninstall
+                )
+                next
+            elsif ex.message.match(/The device is locked/i)
+                UI.message("usb - locked")
+            elsif ex.message.match(/Uninstall failed/i)
+                UI.message("uninstall failed")
+                try_install_device(
+                    device_id: device_id,
+                    ipa: ipa,
+                    skip_wifi: skip_wifi
+                )
+            else
+                UI.error(ex)
+            end
+        else
+            UI.message "install success"
+        ensure
+            UI.message "try_install_device finally"
+        end
+    end
+
+ 
+    lane :signing_xcode_development do |options|
+        xcode_proj = options[:xcode_proj]
+        profiles = match(type: "development", readonly: true, force_for_new_devices: true)
+        update_signing(
+          profiles: profiles, 
+          path: xcode_proj, 
+          code_sign_identity: "Apple Development", 
+          build_configurations: "ReleaseForRunning"
+        )
+    end
+    
+    lane :signing_xcode_distribution do |options|
+        xcode_proj = options[:xcode_proj]
+        profiles = match(type: "appstore", readonly: true)
+        update_signing(profiles: profiles, path: xcode_proj, code_sign_identity: "Apple Distribution", build_configurations: "Release")
+    end
+    
+    private_lane :export_ipa do |options|
+        project_path = options[:project_path]
+        workspace_path = nil
+        
+        if project_path.end_with?(".xcworkspace")
+            workspace_path = project_path;
+            project_path = nil
+        end
+        
+        export_method = options[:export_method]
+        output_dir = "#{options[:output_dir]}/#{export_method}"
+        archive_path = "#{output_dir}/Archive"
+        configuration = options[:configuration]
+        
+        puts "+++ fastlane gym"
+
+        gym(
+            scheme: "Unity-iPhone",
+            project: project_path,
+            workspace: workspace_path,
+            configuration: configuration,
+            clean: true,
+            output_directory: output_dir,
+            export_method: export_method,
+            include_bitcode: false,
+            export_options: {
+                compileBitcode: false
+            },
+            archive_path: archive_path,
+            destination: "generic/platform=iOS",
+        )
+        archive_path = File.expand_path("../#{archive_path}.xcarchive", Dir.pwd)
+        if File.exist?(archive_path)
+            sh(command: "rm -vfr #{archive_path}")
+        end
+        puts "--- fastlane gym"
+        
+        ipa_path = lane_context[:IPA_OUTPUT_PATH]
+        dsym_path = lane_context[:DSYM_OUTPUT_PATH]
+        
+        puts "ipa: #{ipa_path}"
+        puts "dsym: #{dsym_path}"
+        
+        [ipa_path, dsym_path]
+    end
+
+    private_lane :update_signing do |options|
+        profiles = options[:profiles]
+        path = options[:path]
+        code_sign_identity = options[:code_sign_identity]
+        build_configurations = options[:build_configurations]
+     
+        update_code_signing_settings(
+            path: path,
+            targets: "Unity-iPhone",
+            use_automatic_signing: false,
+            team_id: CredentialsManager::AppfileConfig.try_fetch_value(:team_id),
+            profile_name: profiles[CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)],
+            code_sign_identity: code_sign_identity,
+            build_configurations: build_configurations
+        )
+    end
+
+    private_lane :upload_app_center do |options|
+
+        build_only = options[:dsym].nil? ? true : false
+        dsym_path = options[:dsym]
+        notify_testers = options[:notify].nil? ? true : options[:notify]
+
+        appcenter_upload(
+            #api_token: ENV["APPCENTER_IOS_API_TOKEN"], # ENV
+            file: options[:path],
+            notify_testers: notify_testers,
+            #app_os: "iOS", # ENV
+            upload_build_only: build_only,
+            dsym: dsym_path,
+            #app_name: ENV["APPCENTER_IOS_APP_NAME"], # ENV
+            release_notes: "upload #{Date.today.strftime("%Y%m%d")}"
+        )
+    end
+
+    lane :upload_pilot do |options|
+        
+        puts "--- upload testflight"
+        
+        # ipa_path = File.expand_path("../Build/AppStore/AppBuilder.ipa");
+        ipa_path = options[:ipa_path]
+        #api_key_path = ENV["APP_STORE_CONNECT_API_KEY_PATH"]
+        
+        build_number = options[:build_number]
+         
+        #version = lane_context[SharedValues::LATEST_TESTFLIGHT_VERSION]
+        pilot(
+            skip_waiting_for_build_processing: true,
+            skip_submission: true,
+            build_number: build_number,
+            #api_key_path: api_key_path, # ENV
+            # username: CredentialsManager::AppfileConfig.try_fetch_value(:apple_id),
+            ipa: ipa_path,
+        )
+    end
+  
+    private_lane :get_paths do |options|
+        xcode_root = options[:xcode_root]
+        xcode_proj = "#{xcode_root}/Unity-iPhone.xcodeproj"
+        project_path = xcode_proj
+
+        xcode_workspace = options[:xcode_workspace]
+        if xcode_workspace != nil
+            project_path = "#{xcode_root}/#{xcode_workspace}"
+            if !project_path.end_with?(".xcworkspace")
+                project_path = "#{project_path}.xcworkspace"
+            end
+        end
+        [xcode_root, xcode_proj, project_path]
+    end
+    # lane :adhoc do
+    #     match(
+    #         type: "adhoc",
+    #         readonly: false,
+    #         force_for_new_devices: true
+    #     )
+    #     profiles = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
+    #     update_code_signing_settings(
+    #         path: XCODE_PROJECT,
+    #         targets: "Unity-iPhone",
+    #         use_automatic_signing: false,
+    #         team_id: CredentialsManager::AppfileConfig.try_fetch_value(:team_id),
+    #         profile_name: profiles[CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)],
+    #         code_sign_identity: "Apple Distribution",
+    #     # build_configurations: ["Debug", "Release", "ReleaseForProfiling", "ReleaseForRunning"]
+    #     )
+    #     gym(
+    #         scheme: "Unity-iPhone",
+    #         project: XCODE_PROJECT,
+    #         configuration: "Release",
+    #         clean: true,
+    #         output_directory: "Build/AdHoc",
+    #         export_method: "ad-hoc",
+    #         include_bitcode: false,
+    #         export_options: {
+    #             compileBitcode: false
+    #         },
+    #         archive_path: "Build/iOS/Archive"
+    #     )
+    #     # install_on_device(
+    #     #     device_id: "00008101-0005485C3E31003A",
+    #     #     ipa: lane_context["IPA_OUTPUT_PATH"] #lane_context["IPA_OUTPUT_PATH"]
+    #     # )
+    # end
+    #
+    # lane :adhoc_app_center do
+    #     match(
+    #         type: "adhoc",
+    #         readonly: false,
+    #         force_for_new_devices: true
+    #     )
+    #     profiles = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
+    #     update_code_signing_settings(
+    #         path: XCODE_PROJECT,
+    #         targets: "Unity-iPhone",
+    #         use_automatic_signing: false,
+    #         team_id: CredentialsManager::AppfileConfig.try_fetch_value(:team_id),
+    #         profile_name: profiles[CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)],
+    #         code_sign_identity: "Apple Distribution",
+    #     )
+    #     gym(
+    #         scheme: "Unity-iPhone",
+    #         project: XCODE_PROJECT,
+    #         configuration: "Release",
+    #         clean: true,
+    #         output_directory: "Build/AdHoc",
+    #         export_method: "ad-hoc",
+    #         include_bitcode: false,
+    #         export_options: {
+    #             compileBitcode: false
+    #         },
+    #         archive_path: "Build/iOS/Archive"
+    #     )
+    #     archive_path = File.expand_path("../Build/iOS/Archive.xcarchive", Dir.pwd);
+    #     if File.exist?(archive_path)
+    #         File.chmod(666, archive_path)
+    #         File.delete(archive_path)
+    #     end
+    #
+    #     appcenter_upload(
+    #         # api_token: ENV["APP_CENTER_API_TOKEN"], # APPCENTER_API_TOKEN
+    #         # owner_name: "qkrsogusl3", # APPCENTER_OWNER_NAME
+    #         # owner_type:"user",
+    #         # app_name: "AppBuilder", # APPCENTER_APP_NAME
+    #         file: lane_context["IPA_OUTPUT_PATH"],
+    #         notify_testers: true,
+    #         app_os: "iOS",
+    #         upload_build_only: true,
+    #         release_notes: "upload #{Date.today.strftime("%Y%m%d")}"
+    #     )
+    # end
+    
+#     error do |lane, exception|
+
+#     end
+
+#     error do |lane, exception, options|
+#        slack_url = "https://slack-outcoming-webhook-link"
+#        slack(message: "배포에 실패했습니다 :cry:", slack_url: slack_url)
+#     end
+end

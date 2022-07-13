@@ -1,0 +1,7 @@
+app_identifier ENV["APP_IDENTIFIER"]
+apple_id ENV["APPLE_ID"] # Your Apple email address
+team_id ENV["TEAM_ID"]
+itc_team_id ENV["APPSTORE_CONNECT_ID"] # appstore connect team id
+
+json_key_file("./secrets/pc-api-4836545648171937629-889-7d606226d870.json") # google play api
+package_name ENV["PACKAGE_NAME"]
