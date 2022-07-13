@@ -4,12 +4,16 @@
 set -e
 
 echo "--- image build $UNITY_VERSION $PLATFORM"
+
+PLUGIN_DIR="$UNITY_BUILDER_DIR"
+PROJECT_DIR="$UNITY_BUILDER_PROJECT_DIR"
+
 # UNITY_VERSION=2021.3.3f1
 GAME_CI_VERSION=1.0.1 # https://github.com/game-ci/docker/releases
 MY_USERNAME=qkrsogusl3
-COMPOSE_FILE=./unity-build-scripts/docker-compose.yml
-COMPOSE_ENV_FILE=./unity-build-scripts/.env
-COMPOSE_ENV_FILE_SAMPLE=./unity-build-scripts/.env.sample
+COMPOSE_FILE="$PLUGIN_DIR/src/docker-compose.yml"
+COMPOSE_ENV_FILE="$PLUGIN_DIR/src/.env"
+COMPOSE_ENV_FILE_SAMPLE="$PLUGIN_DIR/src/.env.sample"
 
 if [ -z "$UNITY_VERSION" ] || [ -z "$UNITY_LICENSE" ] || [ -z "$PLATFORM" ]; then 
     echo "not found env"
@@ -43,41 +47,26 @@ do
   if [ -z $(docker images -q $IMAGE_TO_PUBLISH) ]; then
     docker-compose -f ${COMPOSE_FILE} build;
   fi
-: '
-  docker-compose -f ${COMPOSE_FILE} run \
-      --entrypoint /bin/bash \
-      --rm \
-      -v $(echo $(pwd):/app) \
-      -v /tmp:/tmp \
-      unity
-
-  if [ -n $UNITY_PROJECT_ROOT ]; then
-    UNITY_PROJECT_DIR="$(pwd)/$UNITY_PROJECT_ROOT";
-  else
-    UNITY_PROJECT_DIR="$(pwd)"
-  fi
-  
-  echo $UNITY_PROJECT_DIR
-'
-if [ "$DEBUG" = true ]; then
-  docker-compose -f ${COMPOSE_FILE} run \
+    
+  if [ "$DEBUG" = true ]; then
+    docker-compose -f ${COMPOSE_FILE} run \
       -itd --entrypoint /bin/bash \
-      -v $(echo $(pwd):/app) \
+      -v $(echo $PROJECT_DIR:/app) \
       unity
-elif [ -n "$SYNC" ]; then
-  echo "compose run sync $args"
-  docker-compose -f ${COMPOSE_FILE} run \
+  elif [ -n "$SYNC" ]; then
+    echo "compose run sync $args"
+    docker-compose -f ${COMPOSE_FILE} run \
       --rm \
       -v $(echo "$SYNC"):/app \
-      -v $(echo $(pwd)/Build):/app/Build \
+      -v $(echo $PROJECT_DIR/Build):/app/Build \
       unity $(echo ${args})
-else
-  echo "compose run $args"
-  docker-compose -f ${COMPOSE_FILE} run \
+  else
+    echo "compose run $args"
+    docker-compose -f ${COMPOSE_FILE} run \
       --rm \
-      -v $(echo $(pwd):/app) \
+      -v $(echo $PROJECT_DIR:/app) \
       unity $(echo ${args})
-fi
+  fi
 
 # uncomment the following to publish the built images to docker hub
 #  docker push ${IMAGE_TO_PUBLISH}

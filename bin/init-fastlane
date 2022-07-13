@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -euo pipefail
-
-source $UNITY_BUILDER_DIR/src/fastlane.sh
