@@ -4,4 +4,4 @@ set -euo pipefail
 
 echo "UnityBuilder Run Build"
 
-../src/runner.sh init
+$UNITY_BUILDER_DIR/src/runner.sh init
