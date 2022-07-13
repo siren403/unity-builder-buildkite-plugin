@@ -5,3 +5,5 @@ set -ueo pipefail
 HOOKS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
 export PATH="$PATH:$HOOKS_DIR/../bin"
+
+export UNITY_BUILDER_PATH="$(cd "$HOOKS_DIR/.." && pwd)"
