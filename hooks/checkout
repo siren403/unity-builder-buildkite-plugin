@@ -4,7 +4,6 @@ set -e
 
 echo "UnityBuilder Checkout"
 
-: '
 export UNITY_BUILDER_WORK_DIR=/usr/local/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
 echo WORK_DIR=$WORK_DIR
 
@@ -35,4 +34,3 @@ fi
 export UNITY_VERSION=$(grep "^m_EditorVersion:" "$UNITY_PATH/ProjectSettings/ProjectVersion.txt" | cut -d " " -f2)
 
 echo "UNITY_VERSION=$UNITY_VERSION"
-'
