@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+
+echo "UnityBuilder Post Checkout"
+
+: '
+echo post-checkout
+SCRIPTS_ROOT="."
+
+if [ -n $UNITY_PROJECT_ROOT ]; then
+    SCRIPTS_ROOT="./$UNITY_PROJECT_ROOT";
+fi
+
+SCRIPTS_DIR="$SCRIPTS_ROOT/unity-build-scripts"
+
+if [ ! -d "$SCRIPTS_DIR" ]; then
+    echo init scripts repo;
+    git clone https://github.com/qkrsogusl3/unity-build-scripts.git $SCRIPTS_DIR;
+else
+    echo fetch repo;
+    cd $SCRIPTS_DIR;
+    git checkout .;
+    git fetch -v --all;
+    git pull origin main;
+    cd ..;
+fi
+
+chmod +x ./unity-build-scripts/build.sh
+'

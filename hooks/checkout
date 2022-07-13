@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+
+echo "UnityBuilder Checkout"
+
+: '
+export UNITY_BUILDER_WORK_DIR=/usr/local/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
+echo WORK_DIR=$WORK_DIR
+
+if [ ! -d $WORK_DIR ]; then
+    echo make dir
+    mkdir $WORK_DIR
+fi
+
+cd $WORK_DIR
+
+if [ -d .git ]; then
+    echo exists repo
+    git fetch -v --prune -- origin $BUILDKITE_BRANCH;
+    git checkout -f FETCH_HEAD;
+else
+    echo init repo
+    git clone -b $BUILDKITE_BRANCH $REPO .;
+fi
+
+git submodule sync --recursive
+git submodule update --init --recursive --force --remote
+git submodule foreach --recursive "git reset --hard"
+
+UNITY_PATH="."
+if [ -n $UNITY_PROJECT_ROOT ]; then
+    UNITY_PATH="$UNITY_PATH/$UNITY_PROJECT_ROOT";
+fi
+export UNITY_VERSION=$(grep "^m_EditorVersion:" "$UNITY_PATH/ProjectSettings/ProjectVersion.txt" | cut -d " " -f2)
+
+echo "UNITY_VERSION=$UNITY_VERSION"
+'
