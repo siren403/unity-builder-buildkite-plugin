@@ -1,0 +1,9 @@
+name: Unity Builder
+description: unity build command library
+author: https://github.com/qkrsogusl3
+requirements: []
+configuration:
+  #properties:
+  #  pattern:
+  #    type: string
+  additionalProperties: false
