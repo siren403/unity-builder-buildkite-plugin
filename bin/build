@@ -2,5 +2,7 @@
 
 set -euo pipefail
 
-cd $UNITY_BUILDER_DIR/src
-./build.sh "$@"
+$UNITY_BUILDER_DIR/src/runner.sh init
+
+#cd $UNITY_BUILDER_DIR/src
+#./build.sh "$@"
