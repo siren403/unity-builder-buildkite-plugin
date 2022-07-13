@@ -4,7 +4,6 @@ set -e
 
 echo "UnityBuilder Post Checkout"
 
-: '
 echo post-checkout
 SCRIPTS_ROOT="."
 
@@ -27,4 +26,3 @@ else
 fi
 
 chmod +x ./unity-build-scripts/build.sh
-'
