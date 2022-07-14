@@ -18,6 +18,11 @@ configuration:
       properties:
         package-name:
           type: string
+    ios:
+      type: object
+      properties:
+        app-identifier:
+          type: string
     app-center:
       type: object
       properties:
@@ -33,6 +38,9 @@ configuration:
       type: object
       properties:
         fastlane:
+          type: boolean
+          default: false
+        sync:
           type: boolean
           default: false
   additionalProperties: false

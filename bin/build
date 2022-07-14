@@ -40,7 +40,8 @@ MY_USERNAME=qkrsogusl3
 COMPOSE_FILE="$PLUGIN_DIR/src/docker-compose.yml"
 COMPOSE_ENV_FILE="$PLUGIN_DIR/src/.env"
 COMPOSE_ENV_FILE_SAMPLE="$PLUGIN_DIR/src/.env.sample"
-
+SYNC_FILE_TEMPLATE="$PLUGIN_DIR/src/docker-sync.yaml.template"
+SYNC_FILE="$PLUGIN_DIR/src/docker-sync-${DOCKER_SYNC_NAME}.yaml"
 
 if [ ! -f $COMPOSE_ENV_FILE ]; then
     cp $COMPOSE_ENV_FILE_SAMPLE $COMPOSE_ENV_FILE
@@ -51,40 +52,60 @@ declare -a components=("$PLATFORM")
 
 for component in "${components[@]}"
 do
-  export GAME_CI_UNITY_EDITOR_IMAGE=unityci/editor:ubuntu-${unity_version}-${component}-${GAME_CI_VERSION}
-  export IMAGE_TO_PUBLISH=${MY_USERNAME}/editor:ubuntu-${unity_version}-${component}-${GAME_CI_VERSION}
-  export PLATFORM=${component}
+    export GAME_CI_UNITY_EDITOR_IMAGE=unityci/editor:ubuntu-${unity_version}-${component}-${GAME_CI_VERSION}
+    export IMAGE_TO_PUBLISH=${MY_USERNAME}/editor:ubuntu-${unity_version}-${component}-${GAME_CI_VERSION}
+    export PLATFORM=${component}
 
-  args=("$@")
+    args=("$@")
 
-  if [[ " ${args[*]} " =~ "-rmi" ]]; then
-    args="${args[@]/-rmi}";
-    docker rmi $(docker images -q $IMAGE_TO_PUBLISH) || true;
-  fi
+    if [[ " ${args[*]} " =~ "-rmi" ]]; then
+        args="${args[@]/-rmi}";
+        docker rmi $(docker images -q $IMAGE_TO_PUBLISH) || true;
+    fi
   
-  if [ -z $(docker images -q $IMAGE_TO_PUBLISH) ]; then
-    docker-compose -f ${COMPOSE_FILE} build;
-  fi
-    
-  if [ "$DEBUG" = true ]; then
-    docker-compose -f ${COMPOSE_FILE} run \
-      -itd --entrypoint /bin/bash \
-      -v $(echo $PROJECT_DIR:/app) \
-      unity
-  elif [ -n "$SYNC" ]; then
-    echo "compose run sync $args"
-    docker-compose -f ${COMPOSE_FILE} run \
-      --rm \
-      -v $(echo "$SYNC"):/app \
-      -v $(echo $PROJECT_DIR/Build):/app/Build \
-      unity $(echo ${args})
-  else
-    echo "compose run $args"
-    docker-compose -f ${COMPOSE_FILE} run \
-      --rm \
-      -v $(echo $PROJECT_DIR:/app) \
-      unity $(echo ${args})
-  fi
+    if [ -z $(docker images -q $IMAGE_TO_PUBLISH) ]; then
+        docker-compose -f ${COMPOSE_FILE} build;
+    fi
+
+    if [ -n "$DOCKER_SYNC_NAME" ]
+    then
+        echo "--- docker-sync: $DOCKER_SYNC_NAME"
+        cp "$SYNC_FILE_TEMPLATE" "$SYNC_FILE"
+        perl -pi -e "s/VOLUME_NAME/${DOCKER_SYNC_NAME}/g" "$SYNC_FILE"
+        perl -pi -e "s/SRC/$(echo $PROJECT_DIR | perl -pe 's/\//\\\//g')/g" "$SYNC_FILE"
+
+        docker-sync clean -c "$SYNC_FILE"
+        docker-sync start -c "$SYNC_FILE"
+        
+        echo "--- docker-compose: run with sync"
+        docker-compose -f ${COMPOSE_FILE} run \
+            --rm \
+            -v $(echo "$DOCKER_SYNC_NAME"):/app \
+            -v $(echo $PROJECT_DIR/Build):/app/Build \
+            unity $(echo ${args})
+    else
+        echo "--- docker-compose: run"
+        docker-compose -f ${COMPOSE_FILE} run \
+            --rm \
+            -v $(echo $PROJECT_DIR:/app) \
+            unity $(echo ${args})
+    fi
+
+    : '
+    if [ "$DEBUG" = true ]; then
+        docker-compose -f ${COMPOSE_FILE} run \
+            -itd --entrypoint /bin/bash \
+            -v $(echo $PROJECT_DIR:/app) \
+            unity
+    elif [ -n "$SYNC" ]; then
+        echo "compose run sync $args"
+        fi
+    '
+    if [ -f "$SYNC_FILE" ]
+    then
+        docker-sync clean -c "$SYNC_FILE"
+        rm "$SYNC_FILE"
+    fi
 
 # uncomment the following to publish the built images to docker hub
 #  docker push ${IMAGE_TO_PUBLISH}

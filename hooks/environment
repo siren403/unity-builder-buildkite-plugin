@@ -2,28 +2,46 @@
 
 #set -ueo pipefail
 
+export BUILDKITE_GIT_CLEAN_FLAGS="-ffdq"
+
 HOOKS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-
 export PATH="$PATH:$HOOKS_DIR/../bin"
-
 export UNITY_BUILDER_DIR="$(cd "$HOOKS_DIR/.." && pwd)"
-
 PLUGIN_PREFIX="BUILDKITE_PLUGIN_UNITY_BUILDER"
-
 echo "prefix: ${PLUGIN_PREFIX}"
 
+# rbenv
+eval "$(rbenv init -)"
+
+# pyenv
+eval "$(pyenv init --path)"
 
 echo "--- env: common"
 eval "export PLATFORM=$"${PLUGIN_PREFIX}_PLATFORM"" && echo "PLATFORM=$PLATFORM"
 eval "export PRODUCT_NAME=$"${PLUGIN_PREFIX}_PRODUCT_NAME"" && echo "PRODUCT_NAME=$PRODUCT_NAME"
+export UNITY_BUILDER_WORK_DIR=/usr/local/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
+export UNITY_BUILDER_PROJECT_DIR="$UNITY_BUILDER_WORK_DIR"
+
+if [ -n "$UNITY_PROJECT_ROOT" ]; then
+    echo "add unity project root $UNITY_PROJECT_ROOT"
+    UNITY_BUILDER_PROJECT_DIR="$UNITY_BUILDER_PROJECT_DIR/$UNITY_PROJECT_ROOT";
+fi
+
 
 echo "--- env: unity"
 eval "export UNITY_OUTPUT=$"${PLUGIN_PREFIX}_UNITY_OUTPUT""
 if [ -z "$UNITY_OUTPUT" ]
 then
-    UNITY_OUTPUT="\$(PROJECT_PATH)/Build/\$(PLATFORM)/\$(PRODUCT_NAME)"
+    UNITY_OUTPUT="Build/$PLATFORM/$PRODUCT_NAME"
     echo "default \$UNITY_OUTPUT: $UNITY_OUTPUT"
 fi
+
+
+echo "--- env: android"
+eval "export PACKAGE_NAME=$"${PLUGIN_PREFIX}_ANDROID_PACKAGE_NAME""
+
+echo "--- env: ios"
+eval "export APP_IDENTIFIER=$"${PLUGIN_PREFIX}_IOS_APP_IDENTIFIER""
 
 echo "--- env: app center"
 eval "export APPCENTER_OWNER_NAME=$"${PLUGIN_PREFIX}_APP_CENTER_OWNER_NAME""
@@ -41,3 +59,13 @@ eval "export APPCENTER_API_TOKEN=$"${PLUGIN_PREFIX}_APP_CENTER_API_TOKEN""
 
 echo "--- env: docker"
 eval "export DOCKER_FASTLANE=$"${PLUGIN_PREFIX}_DOCKER_FASTLANE"" && echo "DOCKER_FASTLANE=${DOCKER_FASTLANE:=false}"
+
+eval "docker_sync_enable=$"${PLUGIN_PREFIX}_DOCKER_SYNC""
+if [ "${docker_sync_enable:-false}" = true ]
+then
+    if which ruby >/dev/null && which gem >/dev/null; then
+        export PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:$PATH"
+    fi
+    export DOCKER_SYNC_NAME="${BUILDKITE_PIPELINE_SLUG}-sync" && echo "DOCKER_SYNC_NAME=${DOCKER_SYNC_NAME}"
+fi
+

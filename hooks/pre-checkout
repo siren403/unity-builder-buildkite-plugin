@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -e
-: '
-export REPO=$BUILDKITE_REPO
-BUILDKITE_REPO=""
-'

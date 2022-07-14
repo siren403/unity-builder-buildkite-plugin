@@ -1,24 +1,24 @@
 #!/bin/bash
 
 function build {
-    echo "--- build unity $PLATFORM $1"
+    echo "--- unity: build $PLATFORM $1"
     unity-editor -quit -nographics -projectPath /app -executeMethod UActions.Bootstrap.Run -logfile - -buildTarget $PLATFORM -work $1
 }
 function build-url {
     URL="$1"
     WORK="$2"
-    echo "--- build unity $PLATFORM $WORK"
+    echo "--- unity: build $PLATFORM $WORK"
     unity-editor -quit -nographics -projectPath /app -executeMethod UActions.Bootstrap.Run -logfile - -buildTarget $PLATFORM -work "$WORK" -url "$URL"
 }
 
 function run-lane {
     cd unity-build-scripts/fastlane
-    echo "--- bundle install"
+    echo "--- fastlane: bundle install"
     bundle install
     export FL_UNITY_EXECUTE_METHOD=UActions.Bootstrap.Run
     #KEY=$PRODUCT_NAME-$PLATFORM
     #restore $KEY
-    echo "--- running fastlane $PLATFORM $@"
+    echo "--- fastlane: running $PLATFORM $@"
     bundle exec fastlane $PLATFORM "$@"
     #cache $KEY
 }

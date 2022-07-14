@@ -14,3 +14,6 @@ services:
     environment:
       FL_UNITY_PROJECT_PATH: /app
       FL_UNITY_PATH: unity-editor
+      PRODUCT_NAME: ${PRODUCT_NAME}
+      UNITY_OUTPUT: /app/${UNITY_OUTPUT}
+      APP_IDENTIFIER: ${APP_IDENTIFIER}
