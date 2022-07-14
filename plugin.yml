@@ -3,7 +3,15 @@ description: unity build command library
 author: https://github.com/qkrsogusl3
 requirements: []
 configuration:
-  #properties:
-  #  pattern:
-  #    type: string
+  properties:
+    app-center:
+      type: object
+      optional: true
+      properties:
+        name:
+          type: string
+        token:
+          type: string
+        id:
+          type: number
   additionalProperties: false

@@ -1,0 +1,6 @@
+services:
+  lint:
+    image: buildkite/plugin-linter
+    command: ['--id', 'qkrsogusl3/unity-builder']
+    volumes:
+      - ".:/plugin:ro"
