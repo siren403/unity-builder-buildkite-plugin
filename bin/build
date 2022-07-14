@@ -1,11 +1,38 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eo pipefail
 
-echo "--- image build $UNITY_VERSION $PLATFORM"
+unity_version="$UNITY_BUILDER_EDITOR_VERSION"
+
+echo "--- image build $unity_version $PLATFORM"
 
 PLUGIN_DIR="$UNITY_BUILDER_DIR"
 PROJECT_DIR="$UNITY_BUILDER_PROJECT_DIR"
+
+if [ ! -d "$PROJECT_DIR" ]
+then
+    echo "not exist project directory"
+    exit 1
+fi
+
+if [ -z "$unity_version" ]
+then
+    echo "empty unity version"
+    exit 1;
+fi
+
+if [ -z "$UNITY_LICENSE" ] 
+then
+    echo "empty license"
+    exit 1
+fi
+
+if [ -z "$PLATFORM" ]
+then
+    echo "empty platform"
+    exit 1
+fi
+
 
 # UNITY_VERSION=2021.3.3f1
 GAME_CI_VERSION=1.0.1 # https://github.com/game-ci/docker/releases
@@ -14,16 +41,8 @@ COMPOSE_FILE="$PLUGIN_DIR/src/docker-compose.yml"
 COMPOSE_ENV_FILE="$PLUGIN_DIR/src/.env"
 COMPOSE_ENV_FILE_SAMPLE="$PLUGIN_DIR/src/.env.sample"
 
-if [ -z "$UNITY_VERSION" ] || [ -z "$UNITY_LICENSE" ] || [ -z "$PLATFORM" ]; then 
-    echo "not found env"
-    echo UNITY_VERSION=$UNITY_VERSION;
-    echo UNITY_LICENSE=$UNITY_LICENSE;
-    echo PLATFORM=$PLATFORM;
-    exit 1;
-fi
 
 if [ ! -f $COMPOSE_ENV_FILE ]; then
-    #touch $COMPOSE_ENV_FILE;
     cp $COMPOSE_ENV_FILE_SAMPLE $COMPOSE_ENV_FILE
 fi
 
@@ -32,8 +51,8 @@ declare -a components=("$PLATFORM")
 
 for component in "${components[@]}"
 do
-  export GAME_CI_UNITY_EDITOR_IMAGE=unityci/editor:ubuntu-${UNITY_VERSION}-${component}-${GAME_CI_VERSION}
-  export IMAGE_TO_PUBLISH=${MY_USERNAME}/editor:ubuntu-${UNITY_VERSION}-${component}-${GAME_CI_VERSION}
+  export GAME_CI_UNITY_EDITOR_IMAGE=unityci/editor:ubuntu-${unity_version}-${component}-${GAME_CI_VERSION}
+  export IMAGE_TO_PUBLISH=${MY_USERNAME}/editor:ubuntu-${unity_version}-${component}-${GAME_CI_VERSION}
   export PLATFORM=${component}
 
   args=("$@")

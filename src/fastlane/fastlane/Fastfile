@@ -36,6 +36,13 @@ platform :android do
 #             Dotenv.overload '../../.env.' + environment
 #         end
 #     end
+    
+    lane :custom_lane do |options|
+        puts "owner: #{ENV["APPCENTER_OWNER_NAME"]}"
+        puts "name #{ENV["APPCENTER_APP_NAME"]}"
+        puts "os: #{ENV["APPCENTER_APP_OS"]}"
+        puts "token: #{ENV["APPCENTER_API_TOKEN"]}"
+    end
 
     lane :deploy_app_center do |options|
         work = nil

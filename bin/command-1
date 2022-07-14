@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "command 1"
+
+export COMMAND_1="command 1"

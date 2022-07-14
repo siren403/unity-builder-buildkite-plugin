@@ -4,14 +4,35 @@ author: https://github.com/qkrsogusl3
 requirements: []
 configuration:
   properties:
+    product-name:
+      type: string
+    platform:
+      type: string
+    unity:
+      type: object
+      properties:
+        output:
+          type: string
+    android:
+      type: object
+      properties:
+        package-name:
+          type: string
     app-center:
       type: object
-      optional: true
       properties:
-        name:
+        owner-name:
           type: string
-        token:
+        app-name:
           type: string
-        id:
-          type: number
+        app-os:
+          type: string
+        api-token:
+          type: string
+    docker:
+      type: object
+      properties:
+        fastlane:
+          type: boolean
+          default: false
   additionalProperties: false

@@ -50,7 +50,9 @@ COPY --from=rubybuild $RUBY_PATH $RUBY_PATH
 
 ARG PLATFORM
 ENV PLATFORM $PLATFORM
-RUN if [ "$PLATFORM" = "android" ]; then gem install fastlane; fi
+
+ARG DOCKER_FASTLANE
+RUN if [ "$DOCKER_FASTLANE" = true ]; then gem install fastlane; fi
 #RUN if [ "$PLATFORM" = "android" ]; then \
         #echo export LC_ALL=en_US.UTF-8 >> /root/.bashrc; \
         #echo export LANG=en_US.UTF-8 >> /root/.bashrc; \
