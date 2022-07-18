@@ -11,8 +11,14 @@ configuration:
     unity:
       type: object
       properties:
+        root:
+          type: string
         output:
           type: string
+	execute-method:
+	  type: string
+        extra-args:
+	  type: string
     android:
       type: object
       properties:
@@ -22,6 +28,8 @@ configuration:
       type: object
       properties:
         app-identifier:
+          type: string
+        workspace:
           type: string
     app-center:
       type: object

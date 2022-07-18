@@ -78,11 +78,20 @@ do
         docker-sync start -c "$SYNC_FILE"
         
         echo "--- docker-compose: run with sync"
-        docker-compose -f ${COMPOSE_FILE} run \
-            --rm \
-            -v $(echo "$DOCKER_SYNC_NAME"):/app \
-            -v $(echo $PROJECT_DIR/Build):/app/Build \
-            unity $(echo ${args})
+	
+	if [ "$DEBUG_CONTAINER" = true ]; then
+	    docker-compose -f ${COMPOSE_FILE} run \
+                -itd --entrypoint /bin/bash \
+                -v $(echo "$DOCKER_SYNC_NAME"):/app \
+	        -v $(echo $PROJECT_DIR/Build):/app/Build \
+	        unity
+	else	
+            docker-compose -f ${COMPOSE_FILE} run \
+                --rm \
+                -v $(echo "$DOCKER_SYNC_NAME"):/app \
+                -v $(echo $PROJECT_DIR/Build):/app/Build \
+                unity $(echo ${args})
+        fi
     else
         echo "--- docker-compose: run"
         docker-compose -f ${COMPOSE_FILE} run \
@@ -92,7 +101,7 @@ do
     fi
 
     : '
-    if [ "$DEBUG" = true ]; then
+    if [ "$DEBUG_CONTAINER" = true ]; then
         docker-compose -f ${COMPOSE_FILE} run \
             -itd --entrypoint /bin/bash \
             -v $(echo $PROJECT_DIR:/app) \
@@ -101,7 +110,7 @@ do
         echo "compose run sync $args"
         fi
     '
-    if [ -f "$SYNC_FILE" ]
+    if [ -f "$SYNC_FILE" ] && [ "$DEBUG_CONTAINER" != true ]
     then
         docker-sync clean -c "$SYNC_FILE"
         rm "$SYNC_FILE"

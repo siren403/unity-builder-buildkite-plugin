@@ -1,10 +1,22 @@
 #!/bin/bash
 
+function activate-license {
+    echo "--- activate license"
+    license_path="/root/unity-license.ulf"    
+
+    echo "$UNITY_LICENSE" >> "${license_path}.base64"
+    base64 -d "${license_path}.base64" > "${license_path}"
+
+    unity-editor -batchmode -manualLicenseFile "$license_path" -logfile - || true
+}
+
 function build {
+    activate-license
     echo "--- unity: build $PLATFORM $1"
     unity-editor -quit -nographics -projectPath /app -executeMethod UActions.Bootstrap.Run -logfile - -buildTarget $PLATFORM -work $1
 }
 function build-url {
+    activate-license
     URL="$1"
     WORK="$2"
     echo "--- unity: build $PLATFORM $WORK"
@@ -61,6 +73,8 @@ function args {
 function init {
     echo do init
 }
+
+cd /
 
 "$@"
 # restore $PRODUCT_NAME-$PLATFORM

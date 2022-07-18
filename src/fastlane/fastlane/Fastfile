@@ -43,6 +43,10 @@ platform :android do
         puts "os: #{ENV["APPCENTER_APP_OS"]}"
         puts "token: #{ENV["APPCENTER_API_TOKEN"]}"
     end
+    
+    lane :unity_signed_apk do |options|
+        unity
+    end
 
     lane :deploy_app_center do |options|
         work = nil
@@ -179,7 +183,8 @@ platform :ios do
         profiles = match(type: "appstore", readonly: true)
         update_signing(profiles: profiles, path: proj, code_sign_identity: "Apple Distribution", build_configurations: [build_configuration])
         
-        ipa_path, dsym_path = export_ipa(project_path: dest, output_dir: "Build/AppStore", export_method: "app-store", configuration: build_configuration)
+        output_dir = options[:output_dir].nil? ? "Build/AppStore" : options[:output_dir]
+        ipa_path, dsym_path = export_ipa(project_path: dest, output_dir: output_dir, export_method: "app-store", configuration: build_configuration)
       
         build_only = options[:build_only].nil? ? false : options[:build_only] 
         if !build_only
@@ -246,8 +251,31 @@ platform :ios do
             ipa: ipa_path,
             uninstall: ENV["APP_IDENTIFIER"]
         )
-	end
-  
+    end
+
+    lane :unity_testflight_ipa do |options|
+        unity
+        root, proj, dest = get_paths options
+        cocoapods(
+            clean_install: true,
+            podfile: "#{root}/Podfile"
+        )
+        deploy_testflight(
+            build_only: true,
+            output_dir: "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios"
+        )
+    end
+
+    lane :unity_deploy_app_center do |options|
+	    unity
+        root, proj, dest = get_paths options
+        cocoapods(
+            clean_install: true,
+            podfile: "#{root}/Podfile"
+        )
+	    deploy_app_center options
+    end 
+ 
     lane :deploy_app_center do |options|
         
         paths = get_paths options
@@ -442,11 +470,12 @@ platform :ios do
     end
   
     private_lane :get_paths do |options|
-        xcode_root = options[:xcode_root]
+        xcode_root = ENV["XCODE_ROOT"].nil? ? options[:xcode_root] : ENV["XCODE_ROOT"]
+        #xcode_root = options[:xcode_root]
         xcode_proj = "#{xcode_root}/Unity-iPhone.xcodeproj"
         project_path = xcode_proj
 
-        xcode_workspace = options[:xcode_workspace]
+        xcode_workspace = ENV["XCODE_WORKSPACE"].nil? ? options[:xcode_workspace] : ENV["XCODE_WORKSPACE"]
         if xcode_workspace != nil
             project_path = "#{xcode_root}/#{xcode_workspace}"
             if !project_path.end_with?(".xcworkspace")

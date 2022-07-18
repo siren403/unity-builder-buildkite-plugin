@@ -1,0 +1,15 @@
+function build {
+    echo "--- unity: build $PLATFORM $1"
+    "$UNITY_EDITOR" -batchmode -quit -nographics -projectPath "$UNITY_BUILDER_PROJECT_DIR" -executeMethod UActions.Bootstrap.Run -logfile - -buildTarget $PLATFORM -work $1
+}
+
+function build-url {
+    URL="$1"
+    WORK="$2"
+    echo "--- unity: build $PLATFORM $WORK"
+    "$UNITY_EDITOR" -batchmode -quit -nographics -projectPath "$UNITY_BUILDER_PROJECT_DIR" -executeMethod UActions.Bootstrap.Run -logfile - -buildTarget $PLATFORM -work "$WORK" -url "$URL"
+}
+
+UNITY_EDITOR="${UNITY_EDITOR_DIR}/${UNITY_BUILDER_EDITOR_VERSION}/Unity.app/Contents/MacOS/Unity"
+
+"$@"

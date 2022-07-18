@@ -19,16 +19,20 @@ eval "$(pyenv init --path)"
 echo "--- env: common"
 eval "export PLATFORM=$"${PLUGIN_PREFIX}_PLATFORM"" && echo "PLATFORM=$PLATFORM"
 eval "export PRODUCT_NAME=$"${PLUGIN_PREFIX}_PRODUCT_NAME"" && echo "PRODUCT_NAME=$PRODUCT_NAME"
-export UNITY_BUILDER_WORK_DIR=/usr/local/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
+export UNITY_BUILDER_WORK_DIR=$(brew --prefix)/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
+
+
+echo "--- env: unity"
+export UNITY_EDITOR_DIR="/Applications/Unity/Hub/Editor"
+
 export UNITY_BUILDER_PROJECT_DIR="$UNITY_BUILDER_WORK_DIR"
+eval "export UNITY_PROJECT_ROOT=$"${PLUGIN_PREFIX}_UNITY_ROOT""
 
 if [ -n "$UNITY_PROJECT_ROOT" ]; then
     echo "add unity project root $UNITY_PROJECT_ROOT"
     UNITY_BUILDER_PROJECT_DIR="$UNITY_BUILDER_PROJECT_DIR/$UNITY_PROJECT_ROOT";
 fi
 
-
-echo "--- env: unity"
 eval "export UNITY_OUTPUT=$"${PLUGIN_PREFIX}_UNITY_OUTPUT""
 if [ -z "$UNITY_OUTPUT" ]
 then
@@ -36,12 +40,23 @@ then
     echo "default \$UNITY_OUTPUT: $UNITY_OUTPUT"
 fi
 
+eval "export UNITY_EXECUTE_METHOD=$"${PLUGIN_PREFIX}_UNITY_EXECUTE_METHOD""
+eval "export UNITY_EXTRA_ARGS=$"${PLUGIN_PREFIX}_UNITY_EXTRA_ARGS""
+
 
 echo "--- env: android"
 eval "export PACKAGE_NAME=$"${PLUGIN_PREFIX}_ANDROID_PACKAGE_NAME""
 
 echo "--- env: ios"
 eval "export APP_IDENTIFIER=$"${PLUGIN_PREFIX}_IOS_APP_IDENTIFIER""
+export XCODE_ROOT="$UNITY_BUILDER_PROJECT_DIR/Build/$PLATFORM/$PRODUCT_NAME" && echo "xcode root: $XCODE_ROOT"
+
+#export XCODE_WORKSPACE="${$(echo "${PLUGIN_PREFIX}_IOS_WORKSPACE"):-Unity-iPhone}" && echo "xcode workspace: $XCODE_WORKSPACE"
+eval "export XCODE_WORKSPACE=$"${PLUGIN_PREFIX}_IOS_WORKSPACE""
+if [ -z "$XCODE_WORKSPACE" ]
+then
+    XCODE_WORKSPACE="Unity-iPhone"
+fi
 
 echo "--- env: app center"
 eval "export APPCENTER_OWNER_NAME=$"${PLUGIN_PREFIX}_APP_CENTER_OWNER_NAME""

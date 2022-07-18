@@ -8,10 +8,16 @@ then
     exit 1;
 fi
 
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+#cd ${UNITY_BUILDER_DIR}/src/fastlane
+#eval "source ${UNITY_BUILDER_DIR}/src/init-fastlane.sh"
+
+#echo "--- cocoapods checking"
+#cd $XCODE_ROOT && if [ -f "./Podfile" ]; then pod install; fi
+
 cd ${UNITY_BUILDER_DIR}/src/fastlane
-
-eval "source ${UNITY_BUILDER_DIR}/src/init-fastlane.sh"
-
 echo "--- bundle install"
 bundle install
 
