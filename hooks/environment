@@ -34,7 +34,7 @@ function get-plugin-value {
     echo "$env_result"
 }
 
-is_debug_value=$(get-plugin-value DEBUG_PLUGIN_VALUE false)
+is_debug_value=$(get-plugin-value DEBUG_ENV false)
 
 function debug-value {
 

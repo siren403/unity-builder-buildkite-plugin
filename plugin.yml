@@ -52,7 +52,7 @@ configuration:
           type: boolean
           default: false
     debug:
-      plugin-value:
+      env:
         type: boolean
         default: false
   additionalProperties: false
