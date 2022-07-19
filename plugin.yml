@@ -51,4 +51,8 @@ configuration:
         sync:
           type: boolean
           default: false
+    debug:
+      plugin-value:
+        type: boolean
+        default: false
   additionalProperties: false
