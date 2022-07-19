@@ -47,9 +47,14 @@ function debug-value {
     fi
 }
 
+function debug-echo {
+    if [ "$is_debug_value" = true ]
+    then
+        echo "$1"
+    fi
+}
 
-
-echo "--- env: common"
+debug-echo "--- env: common"
 export PLATFORM=$(get-plugin-value PLATFORM) && debug-value PLATFORM
 export PRODUCT_NAME=$(get-plugin-value PRODUCT_NAME) && debug-value PRODUCT_NAME
 #eval "export PLATFORM=$"${PLUGIN_PREFIX}_PLATFORM"" && echo "PLATFORM=$PLATFORM"
@@ -57,7 +62,7 @@ export PRODUCT_NAME=$(get-plugin-value PRODUCT_NAME) && debug-value PRODUCT_NAME
 export UNITY_BUILDER_WORK_DIR=$(brew --prefix)/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
 
 
-echo "--- env: unity"
+debug-echo "--- env: unity"
 export UNITY_EDITOR_DIR=$(get-plugin-value UNITY_EDITOR_DIR "/Applications/Unity/Hub/Editor") && debug-value UNITY_EDITOR_DIR
 #export UNITY_EDITOR_DIR="/Applications/Unity/Hub/Editor"
 
