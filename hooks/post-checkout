@@ -1,28 +1,10 @@
 #!/bin/bash
 
-set -e
+#set -e
 
-echo "UnityBuilder Post Checkout"
+#echo "REPO=$BUILDKITE_REPO"
 
-echo post-checkout
-SCRIPTS_ROOT="."
+export UNITY_BUILDER_EDITOR_VERSION=$(grep "^m_EditorVersion:" "$UNITY_BUILDER_PROJECT_DIR/ProjectSettings/ProjectVersion.txt" | cut -d " " -f2)
 
-if [ -n $UNITY_PROJECT_ROOT ]; then
-    SCRIPTS_ROOT="./$UNITY_PROJECT_ROOT";
-fi
+echo "UNITY_BUILDER_EDITOR_VERSION=$UNITY_BUILDER_EDITOR_VERSION"
 
-SCRIPTS_DIR="$SCRIPTS_ROOT/unity-build-scripts"
-
-if [ ! -d "$SCRIPTS_DIR" ]; then
-    echo init scripts repo;
-    git clone https://github.com/qkrsogusl3/unity-build-scripts.git $SCRIPTS_DIR;
-else
-    echo fetch repo;
-    cd $SCRIPTS_DIR;
-    git checkout .;
-    git fetch -v --all;
-    git pull origin main;
-    cd ..;
-fi
-
-chmod +x ./unity-build-scripts/build.sh

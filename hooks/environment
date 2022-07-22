@@ -1,9 +1,128 @@
 #!bin/bash
 
-set -ueo pipefail
+#set -ueo pipefail
+
+export BUILDKITE_GIT_CLEAN_FLAGS="-ffdq"
 
 HOOKS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-
 export PATH="$PATH:$HOOKS_DIR/../bin"
-
 export UNITY_BUILDER_DIR="$(cd "$HOOKS_DIR/.." && pwd)"
+PLUGIN_PREFIX="BUILDKITE_PLUGIN_UNITY_BUILDER"
+echo "prefix: ${PLUGIN_PREFIX}"
+
+# rbenv
+eval "$(rbenv init -)"
+
+# pyenv
+eval "$(pyenv init --path)"
+
+
+plugin_prefix="BUILDKITE_PLUGIN_UNITY_BUILDER"
+
+function get-plugin-value {
+
+    suffix="$1"
+    default="$2"
+    
+    if [ -z "$default" ]
+    then
+        env_result=$(eval "echo \${"${plugin_prefix}_${suffix}"}")
+    else
+        env_result=$(eval "echo \${"${plugin_prefix}_${suffix}":-$default}")
+    fi
+
+    echo "$env_result"
+}
+
+is_debug_value=$(get-plugin-value DEBUG_ENV false)
+
+function debug-value {
+
+    key="$1"
+
+    if [ "$is_debug_value" = true ]
+    then
+        value=$(eval "echo \${"$key"}")
+        echo "$key=$value"
+    fi
+}
+
+function debug-echo {
+    if [ "$is_debug_value" = true ]
+    then
+        echo "$1"
+    fi
+}
+
+debug-echo "--- env: common"
+export PLATFORM=$(get-plugin-value PLATFORM) && debug-value PLATFORM
+export PRODUCT_NAME=$(get-plugin-value PRODUCT_NAME) && debug-value PRODUCT_NAME
+#eval "export PLATFORM=$"${PLUGIN_PREFIX}_PLATFORM"" && echo "PLATFORM=$PLATFORM"
+#eval "export PRODUCT_NAME=$"${PLUGIN_PREFIX}_PRODUCT_NAME"" && echo "PRODUCT_NAME=$PRODUCT_NAME"
+export UNITY_BUILDER_WORK_DIR=$(brew --prefix)/var/buildkite-agent/builds/$(echo "$BUILDKITE_AGENT_NAME" | tr . -)/$BUILDKITE_PROJECT_SLUG
+
+
+debug-echo "--- env: unity"
+export UNITY_EDITOR_DIR=$(get-plugin-value UNITY_EDITOR_DIR "/Applications/Unity/Hub/Editor") && debug-value UNITY_EDITOR_DIR
+#export UNITY_EDITOR_DIR="/Applications/Unity/Hub/Editor"
+
+export UNITY_BUILDER_PROJECT_DIR="$UNITY_BUILDER_WORK_DIR"
+eval "export UNITY_PROJECT_ROOT=$"${PLUGIN_PREFIX}_UNITY_ROOT""
+
+if [ -n "$UNITY_PROJECT_ROOT" ]; then
+    echo "add unity project root $UNITY_PROJECT_ROOT"
+    UNITY_BUILDER_PROJECT_DIR="$UNITY_BUILDER_PROJECT_DIR/$UNITY_PROJECT_ROOT";
+fi
+
+eval "export UNITY_OUTPUT=$"${PLUGIN_PREFIX}_UNITY_OUTPUT""
+if [ -z "$UNITY_OUTPUT" ]
+then
+    UNITY_OUTPUT="Build/$PLATFORM/$PRODUCT_NAME"
+    echo "default \$UNITY_OUTPUT: $UNITY_OUTPUT"
+fi
+
+eval "export UNITY_EXECUTE_METHOD=$"${PLUGIN_PREFIX}_UNITY_EXECUTE_METHOD""
+eval "export UNITY_EXTRA_ARGS=$"${PLUGIN_PREFIX}_UNITY_EXTRA_ARGS""
+
+
+echo "--- env: android"
+eval "export PACKAGE_NAME=$"${PLUGIN_PREFIX}_ANDROID_PACKAGE_NAME""
+
+echo "--- env: ios"
+eval "export APP_IDENTIFIER=$"${PLUGIN_PREFIX}_IOS_APP_IDENTIFIER""
+export XCODE_ROOT="$UNITY_BUILDER_PROJECT_DIR/Build/$PLATFORM/$PRODUCT_NAME" && echo "xcode root: $XCODE_ROOT"
+
+#TEMP=$(eval "echo \${"${PREFIX}_VALUE":-def}")
+export XCODE_WORKSPACE=$(eval "echo \${"${PLUGIN_PREFIX}_IOS_WORKSPACE":-Unity-iPhone}") && echo "xcode workspace: $XCODE_WORKSPACE"
+#eval "export XCODE_WORKSPACE=$"${PLUGIN_PREFIX}_IOS_WORKSPACE""
+#if [ -z "$XCODE_WORKSPACE" ]
+#then
+#    XCODE_WORKSPACE="Unity-iPhone"
+#fi
+
+echo "--- env: app center"
+eval "export APPCENTER_OWNER_NAME=$"${PLUGIN_PREFIX}_APP_CENTER_OWNER_NAME""
+eval "export APPCENTER_APP_NAME=$"${PLUGIN_PREFIX}_APP_CENTER_APP_NAME""
+
+if [ -n "$PLATFORM" ]
+then
+    echo "override appcenter os from \$PLATFORM: $PLATFORM"
+    export APPCENTER_APP_OS="$PLATFORM"
+else
+    eval "export APPCENTER_APP_OS=$"${PLUGIN_PREFIX}_APP_CENTER_APP_OS""
+fi
+
+eval "export APPCENTER_API_TOKEN=$"${PLUGIN_PREFIX}_APP_CENTER_API_TOKEN""
+
+echo "--- env: docker"
+eval "export DOCKER_FASTLANE=$"${PLUGIN_PREFIX}_DOCKER_FASTLANE"" && echo "DOCKER_FASTLANE=${DOCKER_FASTLANE:=false}"
+
+eval "docker_sync_enable=$"${PLUGIN_PREFIX}_DOCKER_SYNC""
+if [ "${docker_sync_enable:-false}" = true ]
+then
+    if which ruby >/dev/null && which gem >/dev/null; then
+        export PATH="$(ruby -r rubygems -e 'puts Gem.user_dir')/bin:$PATH"
+    fi
+    export DOCKER_SYNC_NAME="${BUILDKITE_PIPELINE_SLUG}-sync" && echo "DOCKER_SYNC_NAME=${DOCKER_SYNC_NAME}"
+fi
+

@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -e
-
-echo "UnityBuilder Pre Checkout"
-
-export REPO=$BUILDKITE_REPO
-BUILDKITE_REPO=""

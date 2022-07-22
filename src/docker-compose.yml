@@ -1,18 +1,20 @@
 version: "2"
 services:
   unity:
+    platform: linux/amd64
     env_file:
         - ".env"
     build:
       context: .
-      #dockerfile: ./Dockerfile
       args:
         GAME_CI_UNITY_EDITOR_IMAGE: ${GAME_CI_UNITY_EDITOR_IMAGE}
         PLATFORM: ${PLATFORM}
-        UNITY_LICENSE: ${UNITY_LICENSE}
+        DOCKER_FASTLANE: ${DOCKER_FASTLANE}
     image: ${IMAGE_TO_PUBLISH}
     environment:
+      UNITY_LICENSE: ${UNITY_LICENSE}
       FL_UNITY_PROJECT_PATH: /app
       FL_UNITY_PATH: unity-editor
-      #JOB: ${JOB}
-      #LANE: ${LANE}
+      PRODUCT_NAME: ${PRODUCT_NAME}
+      UNITY_OUTPUT: /app/${UNITY_OUTPUT}
+      APP_IDENTIFIER: ${APP_IDENTIFIER}

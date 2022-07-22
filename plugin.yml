@@ -3,7 +3,56 @@ description: unity build command library
 author: https://github.com/qkrsogusl3
 requirements: []
 configuration:
-  #properties:
-  #  pattern:
-  #    type: string
+  properties:
+    product-name:
+      type: string
+    platform:
+      type: string
+    unity:
+      type: object
+      properties:
+        root:
+          type: string
+        output:
+          type: string
+	execute-method:
+	  type: string
+        extra-args:
+	  type: string
+    android:
+      type: object
+      properties:
+        package-name:
+          type: string
+    ios:
+      type: object
+      properties:
+        app-identifier:
+          type: string
+        workspace:
+          type: string
+    app-center:
+      type: object
+      properties:
+        owner-name:
+          type: string
+        app-name:
+          type: string
+        app-os:
+          type: string
+        api-token:
+          type: string
+    docker:
+      type: object
+      properties:
+        fastlane:
+          type: boolean
+          default: false
+        sync:
+          type: boolean
+          default: false
+    debug:
+      env:
+        type: boolean
+        default: false
   additionalProperties: false

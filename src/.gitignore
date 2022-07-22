@@ -1,7 +1,7 @@
 **/.DS_Store
 
-**/.env
-!**/.env.sample
+#**/.env
+#!**/.env.sample
 env.sh
 
 **/secrets

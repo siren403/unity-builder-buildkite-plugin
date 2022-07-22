@@ -3,5 +3,5 @@
 report.xml
 *.iml
 
-**/.env.*
-!**/.env.*.sample
+#**/.env.*
+#!**/.env.*.sample
