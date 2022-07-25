@@ -203,7 +203,7 @@ platform :ios do
         if !build_only
             upload_pilot(ipa_path: ipa_path, build_number: "#{build_number}")
         end
-        
+       
         fields = []
         fields << { name: "app", value: ENV["APP_IDENTIFIER"] }
         fields << { name: "version", value: version_number }
@@ -391,6 +391,9 @@ platform :ios do
         
         export_method = options[:export_method]
         output_dir = "#{options[:output_dir]}/#{export_method}"
+        if Dir.exist?(output_dir)
+            sh(command: "rm -vfr #{output_dir}")
+        end
         archive_path = "#{output_dir}/Archive"
         configuration = options[:configuration]
         
