@@ -126,3 +126,4 @@ then
     export DOCKER_SYNC_NAME="${BUILDKITE_PIPELINE_SLUG}-sync" && echo "DOCKER_SYNC_NAME=${DOCKER_SYNC_NAME}"
 fi
 
+alias upload="buildkite-agent artifact upload"

@@ -1,2 +1,0 @@
-
-echo "$BUILDKITE_ARTIFACT_PATHS"
