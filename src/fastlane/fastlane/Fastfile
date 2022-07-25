@@ -171,7 +171,10 @@ platform :ios do
                 version_number: version_number,
                 xcodeproj: proj
             )
+        else
+            version_number = get_version_number(xcodeproj: proj, target: "Unity-iPhone")
         end
+
         build_number = latest_testflight_build_number(initial_build_number: 0) + 1
         increment_build_number(
             build_number: build_number,
@@ -184,13 +187,23 @@ platform :ios do
         update_signing(profiles: profiles, path: proj, code_sign_identity: "Apple Distribution", build_configurations: [build_configuration])
         
         output_dir = options[:output_dir].nil? ? "Build/AppStore" : options[:output_dir]
-        ipa_path, dsym_path = export_ipa(project_path: dest, output_dir: output_dir, export_method: "app-store", configuration: build_configuration)
+        display_name = get_info_plist_value(
+            path: "#{root}/Info.plist",
+            key: "CFBundleDisplayName"
+        )
+        ipa_path, dsym_path = export_ipa(
+            project_path: dest, 
+            output_dir: output_dir, 
+            output_name: "#{display_name}-#{version_number}-#{build_number}",
+            export_method: "app-store", 
+            configuration: build_configuration
+        )
       
         build_only = options[:build_only].nil? ? false : options[:build_only] 
         if !build_only
             upload_pilot(ipa_path: ipa_path, build_number: "#{build_number}")
         end
-        
+       
         fields = []
         fields << { name: "app", value: ENV["APP_IDENTIFIER"] }
         fields << { name: "version", value: version_number }
@@ -378,10 +391,15 @@ platform :ios do
         
         export_method = options[:export_method]
         output_dir = "#{options[:output_dir]}/#{export_method}"
+        if Dir.exist?(output_dir)
+            sh(command: "rm -vfr #{output_dir}")
+        end
         archive_path = "#{output_dir}/Archive"
         configuration = options[:configuration]
         
         puts "+++ fastlane gym"
+
+        output_name = options[:output_name].nil? ? nil : "#{options[:output_name]}.ipa"
 
         gym(
             scheme: "Unity-iPhone",
@@ -390,6 +408,7 @@ platform :ios do
             configuration: configuration,
             clean: true,
             output_directory: output_dir,
+            output_name: output_name,
             export_method: export_method,
             include_bitcode: false,
             export_options: {
