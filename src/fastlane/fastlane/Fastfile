@@ -49,13 +49,15 @@ platform :android do
     end
 
     lane :deploy_app_center do |options|
-        work = nil
-        if options[:work] != nil
-            work = options[:work]
-        elsif ENV["work"] != nil
-            work = ENV["work"]
-        end
-        apk_path = build(work: work)
+        #work = nil
+        #if options[:work] != nil
+        #    work = options[:work]
+        #elsif ENV["work"] != nil
+        #    work = ENV["work"]
+        #end
+        #apk_path = build(work: work)
+        unity
+        apk_path = "#{ENV["FL_UNITY_PROJECT_PATH"]}/Build/android/#{ENV["PRODUCT_NAME"]}.apk"
         upload_app_center(path: apk_path)
     end
 
