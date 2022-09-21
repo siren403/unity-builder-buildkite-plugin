@@ -313,7 +313,7 @@ platform :ios do
         if enable_iparesign
             puts "start iparesign"
 
-            sh "#{ENV["IPA_IPARESIGN_PATH"]} --ipa #{appguard_ipa} --profile #{profile_path} --identity #{ENV["FL_RESIGN_SIGNING_IDENTITY"]} &> ./resign.log"
+            sh "#{ENV["IPA_IPARESIGN_PATH"]} --ipa #{appguard_output} --profile #{profile_path} --identity #{ENV["FL_RESIGN_SIGNING_IDENTITY"]} &> ./resign.log"
 
             sh "cat ./resign.log"
             resigned_file_path = sh '$(cat ./resign.log| grep -oP "(?<=\")(.*resigned.ipa)")'
@@ -322,13 +322,13 @@ platform :ios do
             appguard_ipa = resigned_file_path
         else
             resign(
-                ipa: appguard_ipa,
+                ipa: appguard_output,
                 provisioning_profile: profile_path
             )
         end
 
         pilot(
-            ipa: appguard_ipa,
+            ipa: appguard_output,
             build_number: "#{build_number}",
             skip_waiting_for_build_processing: true,
             skip_submission: true,
