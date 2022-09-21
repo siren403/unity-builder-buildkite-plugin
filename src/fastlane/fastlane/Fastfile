@@ -315,7 +315,7 @@ platform :ios do
 
         pilot(
             ipa: appguard_ipa,
-            build_number: build_number,
+            build_number: "#{build_number}",
             skip_waiting_for_build_processing: true,
             skip_submission: true,
             uses_non_exempt_encryption: true
