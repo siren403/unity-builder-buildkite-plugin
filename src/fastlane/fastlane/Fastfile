@@ -184,8 +184,10 @@ platform :ios do
         )
         
         build_configuration = "Release"
-        
-        profiles = match(type: "appstore", readonly: true)
+        match_type = "appstore"
+
+
+        profiles = match(type: match_type, readonly: true)
         update_signing(profiles: profiles, path: proj, code_sign_identity: "Apple Distribution", build_configurations: [build_configuration])
         
         output_dir = options[:output_dir].nil? ? "Build/AppStore" : options[:output_dir]
@@ -205,8 +207,11 @@ platform :ios do
         if !build_only
             upload_pilot(ipa_path: ipa_path, build_number: "#{build_number}")
         end
+
+        app_identifier = "#{ENV["MATCH_APP_IDENTIFIER"]}"
+        profile_path = "#{ENV["sigh_#{app_identifier}_#{match_type}_profile-path"]}"
        
-        [build_number, ipa_path, profiles]
+        [build_number, ipa_path, profile_path]
         #fields = []
         #fields << { name: "app", value: ENV["APP_IDENTIFIER"] }
         #fields << { name: "version", value: version_number }
@@ -289,7 +294,7 @@ platform :ios do
             clean_install: true,
             podfile: "#{root}/Podfile"
         )
-        build_number, ipa_path, profiles = deploy_testflight(
+        build_number, ipa_path, profile_path = deploy_testflight(
             build_only: true,
             output_dir: "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios"
         )
@@ -305,7 +310,7 @@ platform :ios do
 
         resign(
             ipa: appguard_ipa,
-            provisioning_profile: profiles
+            provisioning_profile: profile_path
         )
 
         pilot(
