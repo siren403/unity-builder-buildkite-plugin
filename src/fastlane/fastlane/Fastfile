@@ -308,10 +308,24 @@ platform :ios do
 
         sh "security unlock-keychain -p #{ENV['KEY_CHAIN_PASSWORD']} ~/Library/Keychains/login.keychain-db"
 
-        resign(
-            ipa: appguard_ipa,
-            provisioning_profile: profile_path
-        )
+        enable_iparesign = options[:iparesign].nil? ? false : options[:iparesign]
+
+        if enable_iparesign
+            puts "start iparesign"
+
+            sh "#{ENV["IPA_IPARESIGN_PATH"]} --ipa #{appguard_ipa} --profile #{profile_path} --identity #{ENV["FL_RESIGN_SIGNING_IDENTITY"]} &> ./resign.log"
+
+            sh "cat ./resign.log"
+            resigned_file_path = sh '$(cat ./resign.log| grep -oP "(?<=\")(.*resigned.ipa)")'
+            puts "resigned: #{resigned_file_path}"
+
+            appguard_ipa = resigned_file_path
+        else
+            resign(
+                ipa: appguard_ipa,
+                provisioning_profile: profile_path
+            )
+        end
 
         pilot(
             ipa: appguard_ipa,
