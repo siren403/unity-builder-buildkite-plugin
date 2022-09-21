@@ -208,7 +208,7 @@ platform :ios do
             upload_pilot(ipa_path: ipa_path, build_number: "#{build_number}")
         end
 
-        app_identifier = "#{ENV["MATCH_APP_IDENTIFIER"]}"
+        app_identifier = ENV["APP_IDENTIFIER"]
         profile_path = "#{ENV["sigh_#{app_identifier}_#{match_type}_profile-path"]}"
        
         [build_number, ipa_path, profile_path]
