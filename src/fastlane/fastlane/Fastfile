@@ -206,28 +206,29 @@ platform :ios do
             upload_pilot(ipa_path: ipa_path, build_number: "#{build_number}")
         end
        
-        fields = []
-        fields << { name: "app", value: ENV["APP_IDENTIFIER"] }
-        fields << { name: "version", value: version_number }
-        fields << { name: "build", value: build_number }
-        fields << { name: "build configuration", value: build_configuration }
+        [build_number, ipa_path, profiles]
+        #fields = []
+        #fields << { name: "app", value: ENV["APP_IDENTIFIER"] }
+        #fields << { name: "version", value: version_number }
+        #fields << { name: "build", value: build_number }
+        #fields << { name: "build configuration", value: build_configuration }
         
-        if build_only
-            fields << {
-                name: "build_only", value: build_only
-            }
-        end
+        #if build_only
+        #    fields << {
+        #        name: "build_only", value: build_only
+        #    }
+        #end
         
-        begin
-            discord_notifier(
-                title: "fastlane completed",
-                description: "deploy testflight",
-                fields: fields
-            )
-        rescue => ex
-            UI.message("discord noti failed")
-            UI.message(ex)
-        end
+        #begin
+        #    discord_notifier(
+        #        title: "fastlane completed",
+        #        description: "deploy testflight",
+        #        fields: fields
+        #    )
+        #rescue => ex
+        #    UI.message("discord noti failed")
+        #    UI.message(ex)
+        #end
     end
   
     lane :deploy_device do |options|
@@ -278,6 +279,41 @@ platform :ios do
         deploy_testflight(
             build_only: true,
             output_dir: "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios"
+        )
+    end
+
+    lane :unity_appguard_testflight do |options|
+        unity
+        root, proj, dest = get_paths options
+        cocoapods(
+            clean_install: true,
+            podfile: "#{root}/Podfile"
+        )
+        build_number, ipa_path, profiles = deploy_testflight(
+            build_only: true,
+            output_dir: "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios"
+        )
+
+        appguard_cli = ENV["APPGUARD_CLI"]
+        appguard_ipa = ipa_path
+        appguard_output = ipa_path.gsub(".ipa", "-appguarded.ipa")
+        appguard_properties = ENV["APPGUARD_PROPERTIES"]
+
+        sh "java -jar #{appguard_cli} -i #{appguard_ipa} -o #{appguard_output} -p #{appguard_properties}"
+
+        sh "security unlock-keychain -p #{ENV['KEY_CHAIN_PASSWORD']} ~/Library/Keychains/login.keychain-db"
+
+        resign(
+            ipa: appguard_ipa,
+            provisioning_profile: profiles
+        )
+
+        pilot(
+            ipa: appguard_ipa,
+            build_number: build_number,
+            skip_waiting_for_build_processing: true,
+            skip_submission: true,
+            uses_non_exempt_encryption: true
         )
     end
 
