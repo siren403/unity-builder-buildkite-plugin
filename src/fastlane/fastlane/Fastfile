@@ -439,7 +439,12 @@ platform :ios do
         end
         archive_path = "#{output_dir}/Archive"
         configuration = options[:configuration]
-        
+
+        unlock_keychain(
+            path: "~/Library/Keychains/login.keychain-db",
+            password: ENV['KEY_CHAIN_PASSWORD']
+        )
+
         puts "+++ fastlane gym"
 
         output_name = options[:output_name].nil? ? nil : "#{options[:output_name]}.ipa"
