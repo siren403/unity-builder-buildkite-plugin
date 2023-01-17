@@ -331,6 +331,18 @@ platform :ios do
         )
 	    deploy_app_center options
     end 
+	
+	lane :unity_deploy_testflight do |options|
+		unity
+		root, proj, dest = get_paths options
+        cocoapods(
+            clean_install: true,
+            podfile: "#{root}/Podfile"
+        )
+        deploy_testflight(
+            output_dir: "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios"
+        )
+	end
  
     lane :deploy_app_center do |options|
         
