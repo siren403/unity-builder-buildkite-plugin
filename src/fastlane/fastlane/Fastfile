@@ -160,7 +160,50 @@ platform :ios do
     before_all do |lane|
         puts "ios lane: #{lane}"
     end
-  
+
+    lane :unity_deploy_testflight do |options|
+        
+        skip_unity = options[:skip_unity].nil? ? false : options[:skip_unity] 
+        unless skip_unity
+		    unity
+		end
+
+		root, proj, dest = get_paths options
+
+        podfile_path = "#{root}/Podfile"
+        if File.exist?(podfile_path)
+            cocoapods(
+                clean_install: true,
+                podfile: podfile_path
+            )
+        end
+        
+        build_configuration = "Release"
+        match_type = "appstore"
+
+        version_number = get_version_number(xcodeproj: proj, target: "Unity-iPhone")
+        build_number = get_build_number(xcodeproj: proj)
+
+        profiles = match(type: match_type, readonly: true)
+        update_signing(profiles: profiles, path: proj, code_sign_identity: "Apple Distribution", build_configurations: [build_configuration])
+        
+        output_dir = "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios" 
+        display_name = get_info_plist_value(
+            path: "#{root}/Info.plist",
+            key: "CFBundleDisplayName"
+        )
+        ipa_path, dsym_path = export_ipa(
+            project_path: dest, 
+            output_dir: output_dir, 
+            output_name: "#{display_name}-#{version_number}-#{build_number}",
+            export_method: "app-store", 
+            configuration: build_configuration
+        )
+      
+        upload_pilot(ipa_path: ipa_path)
+
+	end
+
     lane :deploy_testflight do |options|
         
         paths = get_paths options
@@ -332,18 +375,7 @@ platform :ios do
 	    deploy_app_center options
     end 
 	
-	lane :unity_deploy_testflight do |options|
-		unity
-		root, proj, dest = get_paths options
-        cocoapods(
-            clean_install: true,
-            podfile: "#{root}/Podfile"
-        )
-        deploy_testflight(
-            output_dir: "#{ENV["UNITY_BUILDER_PROJECT_DIR"]}/Build/ios"
-        )
-	end
- 
+	 
     lane :deploy_app_center do |options|
         
         paths = get_paths options
@@ -439,9 +471,14 @@ platform :ios do
         project_path = options[:project_path]
         workspace_path = nil
         
+        puts project_path
+
         if project_path.end_with?(".xcworkspace")
+            puts "export project is .xcworkspace"
             workspace_path = project_path;
             project_path = nil
+        else 
+            puts "export project is .xcodeproj"
         end
         
         export_method = options[:export_method]
@@ -554,7 +591,8 @@ platform :ios do
         xcode_proj = "#{xcode_root}/Unity-iPhone.xcodeproj"
         project_path = xcode_proj
 
-        xcode_workspace = ENV["XCODE_WORKSPACE"].nil? ? options[:xcode_workspace] : ENV["XCODE_WORKSPACE"]
+        xcode_workspace = ENV["XCODE_WORKSPACE"].nil? || ENV["XCODE_WORKSPACE"].empty? ? options[:xcode_workspace] : ENV["XCODE_WORKSPACE"]
+
         if xcode_workspace != nil
             project_path = "#{xcode_root}/#{xcode_workspace}"
             if !project_path.end_with?(".xcworkspace")
