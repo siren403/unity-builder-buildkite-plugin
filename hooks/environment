@@ -93,7 +93,7 @@ eval "export APP_IDENTIFIER=$"${PLUGIN_PREFIX}_IOS_APP_IDENTIFIER""
 export XCODE_ROOT="$UNITY_BUILDER_PROJECT_DIR/Build/$PLATFORM/$PRODUCT_NAME" && echo "xcode root: $XCODE_ROOT"
 
 #TEMP=$(eval "echo \${"${PREFIX}_VALUE":-def}")
-export XCODE_WORKSPACE=$(eval "echo \${"${PLUGIN_PREFIX}_IOS_WORKSPACE":-Unity-iPhone}") && echo "xcode workspace: $XCODE_WORKSPACE"
+export XCODE_WORKSPACE=$(eval "echo \${"${PLUGIN_PREFIX}_IOS_WORKSPACE"}") && echo "xcode workspace: $XCODE_WORKSPACE"
 #eval "export XCODE_WORKSPACE=$"${PLUGIN_PREFIX}_IOS_WORKSPACE""
 #if [ -z "$XCODE_WORKSPACE" ]
 #then
