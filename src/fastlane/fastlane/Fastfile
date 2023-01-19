@@ -48,6 +48,29 @@ platform :android do
         unity
     end
 
+    lane :unity_deploy_google_play_internal do |options|
+ 
+        skip_unity = options[:skip_unity].nil? ? false : options[:skip_unity] 
+        unless skip_unity
+		    unity
+		end
+
+        aab_path = ENV["BUILD_PATH"]
+        if !aab_path.end_with?(".aab")
+            aab_path = "#{aab_path}.aab"
+        end
+        puts aab_path
+        supply(
+            track: "internal",
+            json_key: ENV["GOOGLE_AUTH_JSON_KEY_PATH"],
+            aab: aab_path,
+            skip_upload_metadata: true,
+	        skip_upload_images: true,
+            skip_upload_screenshots: true,
+            skip_upload_apk: true
+        )
+    end
+
     lane :deploy_app_center do |options|
         #work = nil
         #if options[:work] != nil
